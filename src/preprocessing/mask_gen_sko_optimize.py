@@ -17,13 +17,13 @@ def main():
     print("Source image: " + img_path)
     print(img.shape)
 
-    window_size = 5
+    window_size = 9
     no_pix_values = window_size // 2
     tmp_img = np.pad(img, no_pix_values, 'reflect').astype(np.uint8)
     tmp_rows, tmp_cols = tmp_img.shape
     print(tmp_img.shape)
     pre_proc_sko_mask = np.zeros((rows, cols)).astype(np.uint8)
-    sko_thresh = 25
+    sko_thresh = 30
 
     y = 0
     for i in range(no_pix_values, tmp_rows - no_pix_values):
@@ -47,7 +47,7 @@ def main():
     print("Post processing is started...")
 
     y = 0
-    bright_thresh = 25
+    bright_thresh = 30
     tmp_sko_mask = np.pad(pre_proc_sko_mask, no_pix_values, 'reflect').astype(np.uint8)
     post_proc_sko_mask = np.zeros((rows, cols)).astype(np.uint8)
     for i in range(no_pix_values, tmp_rows - no_pix_values):

@@ -1,22 +1,23 @@
+import numpy as np
 from skimage import io
 import os
 from matplotlib import pyplot as plt
 import random
 
-SRC_IMG_DIR = '../aviris/src/img/rgb/'
-SRC_MASK_DIR = '../aviris/src/mask/'
+SRC_IMG_DIR = '../../aviris/src/img/rgb/'
+SRC_MASK_DIR = '../../aviris/src/mask/'
 SRC_IMG_EXT = '.bmp'
 SRC_MASK_EXT = '.tif'
-OUT_TEST_IMG_DIR = '../aviris/tiles/rgb_set/test/img/'
-OUT_TEST_MASK_DIR = '../aviris/tiles/rgb_set/test/mask/'
-OUT_TRAIN_IMG_DIR = '../aviris/tiles/rgb_set/train/img/'
-OUT_TRAIN_MASK_DIR = '../aviris/tiles/rgb_set/train/mask/'
+OUT_TEST_IMG_DIR = '../../aviris/tiles/rgb_set/test/img/'
+OUT_TEST_MASK_DIR = '../../aviris/tiles/rgb_set/test/mask/'
+OUT_TRAIN_IMG_DIR = '../../aviris/tiles/rgb_set/train/img/'
+OUT_TRAIN_MASK_DIR = '../../aviris/tiles/rgb_set/train/mask/'
 
 OUT_IMG_EXT = '.tif'
 OUT_MASK_EXT = '.tif'
-TILE_SIZE = 256
-OVERLAPPING = 0.75
-TEST_PERCENT = 0.05
+TILE_SIZE = 512
+OVERLAPPING = 1
+TEST_PERCENT = 0.1
 
 
 def display_tile(img, mask):
@@ -52,7 +53,7 @@ def read_data_from_dir(path2dir, file_ext):
     file_names_sort = [str(i) + '.tif' for i in range(len(file_names))]
     out_data = []
     for file_name in file_names:
-        if file_name[-len(file_ext):] == file_ext:
+        if file_name[-len(file_ext):] == file_ext and file_name != '19.tif' and file_name != '19.bmp':
             out_data.append(io.imread(path2dir + file_name))
     return out_data
 
@@ -114,10 +115,35 @@ def mix_dataset(input_img_set, input_mask_set):
     return out_img_set, out_mask_set
 
 
+def supplement_sample(img, mask):
+    img = np.pad(img, ((0, max(0, TILE_SIZE - img.shape[0])), (0, max(0, TILE_SIZE - img.shape[1])), (0, 0)), 'reflect')
+    mask = np.pad(mask, ((0, max(0, TILE_SIZE - mask.shape[0])), (0, max(0, TILE_SIZE - mask.shape[1]))), 'reflect')
+    return img, mask
+
+
 def save_img_set_to_dir(path2dir, input_img_set, file_ext):
     file_names = [path2dir + str(i) + file_ext for i in range(len(input_img_set))]
     for i in range(len(input_img_set)):
         io.imsave(file_names[i], input_img_set[i], check_contrast=False)
+
+
+def eval_class_balance(mask_set):
+    print('Evaluating class balance...')
+    cl1s, cl2s = 0, 0
+    total_samples = 0
+    for mask in mask_set:
+        rows, cols = mask.shape
+        for i in range(rows):
+            for j in range(cols):
+                if mask[i][j] == 0:
+                    cl1s += 1
+                else:
+                    cl2s += 1
+                total_samples += 1
+    cl1p = (cl1s * 100) / total_samples
+    cl2p = (cl2s * 100) / total_samples
+    print('Class1(0) - ' + str(cl1p) + '% of total samples. \n'
+          + 'Class2(255) - ' + str(cl2p) + '% of total samles. \n')
 
 
 def main():
@@ -125,6 +151,9 @@ def main():
 
     src_images = read_data_from_dir(SRC_IMG_DIR, SRC_IMG_EXT)
     src_masks = read_data_from_dir(SRC_MASK_DIR, SRC_MASK_EXT)
+
+    for i in range(len(src_images)):
+        src_images[i], src_masks[i] = supplement_sample(src_images[i], src_masks[i])
 
     img_tiles = cropping_img_set(src_images, TILE_SIZE, OVERLAPPING)
     mask_tiles = cropping_img_set(src_masks, TILE_SIZE, OVERLAPPING)
@@ -142,6 +171,8 @@ def main():
 
     save_img_set_to_dir(OUT_TRAIN_IMG_DIR, train_img_set, OUT_IMG_EXT)
     save_img_set_to_dir(OUT_TRAIN_MASK_DIR, train_mask_set, OUT_MASK_EXT)
+
+    # eval_class_balance(train_mask_set)
 
 
 if __name__ == '__main__':

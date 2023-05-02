@@ -61,7 +61,7 @@ max_bright_code = 256
 
 def train_generator(train_path, image_folder, mask_folder, first_image, num_image, batch_size,
                     image_size):
-    X = np.zeros((batch_size, image_size, image_size, 3))
+    X = np.zeros((batch_size, image_size, image_size, 4))
     Y = np.zeros((batch_size, image_size, image_size, 1))
     while 1:
         for i in range(first_image, first_image + num_image, batch_size):
@@ -149,7 +149,7 @@ class PreventLossIncrease(Keras.callbacks.Callback):
         tr_loss = 0
         for i in range(self.step_count):
             xy = next(self.train_gen)
-            res = self.model.predict(xy[0])
+            res = self.model.predict(xy[0], verbose=0)
             res_et = xy[1]
             tr_loss += np.mean(segm_loss_np(res_et, res))
             if i % 10 == 0:
@@ -159,7 +159,7 @@ class PreventLossIncrease(Keras.callbacks.Callback):
         val_loss = 0
         for i in range(self.val_batch_count):
             xy = next(self.val_gen)
-            res = self.model.predict(xy[0])
+            res = self.model.predict(xy[0], verbose=0)
             res_et = xy[1]
             val_loss += np.mean(segm_loss_np(res_et, res))
             if i % 10 == 0:
@@ -178,12 +178,11 @@ class PreventLossIncrease(Keras.callbacks.Callback):
 
 
 def main():
-    TileSize = 256
-    train_data_dir = './aviris/tiles/rgb_set/train/'
-    test_data_dir = './aviris/tiles/rgb_set/test/'
-    model_file_name = 'unet_d5_ch16_mp_1conv_bn_ms'
+    TileSize = 512
+    train_data_dir = '../aviris/tiles/edge_set/train/'
+    test_data_dir = '../aviris/tiles/edge_set/test/'
+    model_file_name = 'unet_d5_ch16_mp_1conv_bn_ms_plus_edges'
     is_need_load_model = True
-    is_need_load_model_weights = False
 
     batch_size = 12
 
@@ -202,9 +201,10 @@ def main():
         #        layer.momentum = 0.999
         # model.save('tmp.hdf5')
         # model = load_model('tmp.hdf5', compile=True, custom_objects={'segm_loss': segm_loss})
+
         # Keras.backend.set_value(model.optimizer.lr, 1e-5)
     else:
-        model = UNet(img_shape=(TileSize, TileSize, 3), out_ch=1, start_ch=16, depth=5, inc_rate=2, dropout=0,
+        model = UNet(img_shape=(TileSize, TileSize, 4), out_ch=1, start_ch=16, depth=5, inc_rate=2, dropout=0,
                      batchnorm=True, maxpool=True, upconv=True, residual=False, second_conv=False)
         print(model.summary())
         model.compile(optimizer=Adam(lr=1e-4), loss=segm_loss)
@@ -213,7 +213,3 @@ def main():
         PreventLossIncrease(model_file_name + '.hdf5', myGene1, steps_per_epoch, valGene, steps_val)])
     # model.save(model_file_name + '.hdf5')
     # Keras2Tensorflow(model, model_file_name + '.pb')
-
-
-if __name__ == '__main__':
-    main()

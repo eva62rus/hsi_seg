@@ -2,7 +2,7 @@ from osgeo import gdal
 import numpy as np
 import skimage.io as io
 
-FILE_PATH = 'img21.tiff'
+FILE_PATH = 'img36.tiff'
 
 
 def open_raster(p_file_name):
